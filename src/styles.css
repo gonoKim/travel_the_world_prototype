@@ -1,0 +1,27 @@
+
+*{box-sizing:border-box}
+html,body,#root{height:100%;margin:0}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,'Apple Color Emoji','Segoe UI Emoji';color:#111}
+button{cursor:pointer}
+.header{position:fixed;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:center;justify-content:space-between;z-index:10}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.08)}
+.toolbar{display:flex;gap:8px;align-items:center}
+.toolbar button{padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#fff}
+.toolbar button.primary{background:#0ea5e9;border-color:#0ea5e9;color:#fff}
+.toolbar .muted{opacity:.7;font-size:13px}
+.legend{position:fixed;bottom:12px;left:12px;z-index:5}
+.overlay-img{width:140px;height:96px;object-fit:cover;border-radius:10px;border:2px solid #fff;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.upload-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:20}
+.upload-box{background:#fff;border-radius:14px;padding:18px;min-width:320px}
+small.hint{color:#6b7280;font-size:12px}
+.overlay-img{
+  width:140px; height:96px;
+  object-fit:cover;
+  border-radius:10px;
+  border:2px solid #fff;
+  box-shadow:0 8px 26px rgba(0,0,0,.25);
+}
+/* modal 공통 */
+.upload-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:40}
+.upload-box{background:#fff;border-radius:14px;padding:18px;max-height:92vh;overflow:auto}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.08)}

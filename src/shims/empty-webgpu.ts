@@ -1,0 +1,1 @@
+export class WebGPURenderer {} export const WebGPU = {};

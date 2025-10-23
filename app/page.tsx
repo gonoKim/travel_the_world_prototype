@@ -1,6 +1,4 @@
-// app/page.tsx
 "use client"
-
 import dynamic from "next/dynamic"
 import { useState } from "react"
 import CountryModal from "@/components/CountryModal"
@@ -13,13 +11,9 @@ export default function Home() {
   const { selectedCountry } = useGlobeStore()
 
   return (
-    <main style={{ height: "100vh", width: "100vw", position: "relative" }}>
+    <main className="fullscreen">
       <GlobeCanvas onCountryClick={() => setOpen(true)} />
-      {selectedCountry && (
-        <div className="country-badge">
-          {selectedCountry.name} ({selectedCountry.iso3})
-        </div>
-      )}
+      {selectedCountry && <div className="country-badge">{selectedCountry.name} ({selectedCountry.iso3})</div>}
       {open && <CountryModal onClose={() => setOpen(false)} />}
     </main>
   )

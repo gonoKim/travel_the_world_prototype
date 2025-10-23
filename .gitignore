@@ -1,24 +1,62 @@
-# dependencies
-node_modules/
-pnpm-lock.yaml
-yarn.lock
-package-lock.json
-
-# build outputs
-dist/
-.vite/
-coverage/
-
-# editor/OS
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-
-# logs
+# Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.next-static/
+.next-tmp/
+coverage/
+*.tsbuildinfo
+.eslintcache
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Package managers
+.pnp.*
+.npm/
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
+# Vercel / Turbo / Other
+.vercel/
+.turbo/
+dist/
+
+# Misc caches
+*.swp
+*.swm
+*.swo
+*.sw?
+*.tmp
+*.temp

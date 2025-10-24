@@ -72,7 +72,7 @@ export default function GlobeCanvas({ onCountryClick }: Props) {
         const controls = (globe as any).controls?.();
         if (controls) {
           controls.autoRotate = true;
-          controls.autoRotateSpeed = 0.55;
+          controls.autoRotateSpeed = 0;
         }
       });
 

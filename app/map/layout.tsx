@@ -1,32 +1,33 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { SlideProvider, useSlideReady } from "./SlideContext";
 
 function AnimatedShell({ children }: { children: React.ReactNode }) {
   const { setReady } = useSlideReady();
-  const [entering, setEntering] = useState(false);
-  const ran = useRef(false); // StrictMode 이펙트 2회 가드
+  const [entering, setEntering] = useState(true);
 
   useEffect(() => {
-    if (ran.current) return;
-    ran.current = true;
-    setReady(false);
+    // 새 페이지 진입 시 애니메이션 시작 + 준비 false
     setEntering(true);
-    const t = setTimeout(() => {
-      setEntering(false);
-      setReady(true);
-      ran.current = false;
-    }, 350);
-    return () => clearTimeout(t);
+    setReady(false);
   }, [setReady]);
 
   return (
     <div className="relative overflow-hidden">
-      <main className={`min-h-screen bg-white ${entering ? "animate-slide-in" : ""}`}>
+      <main
+        className={`min-h-screen bg-white ${entering ? "animate-slide-in" : ""}`}
+        onAnimationEnd={() => {
+          setEntering(false);
+          setReady(true);           // ✅ 애니메이션 끝났다고 알림
+        }}
+      >
         {children}
       </main>
       <style jsx global>{`
-        @keyframes slide-in { from { transform: translateX(100%); opacity:.6 } to { transform: translateX(0); opacity:1 } }
+        @keyframes slide-in {
+          from { transform: translateX(100%); opacity: .6; }
+          to   { transform: translateX(0);     opacity: 1;  }
+        }
         .animate-slide-in { animation: slide-in .35s ease-in-out both; }
       `}</style>
     </div>

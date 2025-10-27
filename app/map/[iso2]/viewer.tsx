@@ -51,7 +51,7 @@ export default function Viewer({ code }: { code: string }) {
       {/* 디버그 정보는 항상 보이게 두면 원인 파악 쉬움 */}
       {info}
 
-      {/* ✅ 슬라이드가 끝나기 전엔 렌더만 숨김(데이터는 이미 받아둠) */}
+      {/* 슬라이드가 끝나기 전엔 렌더만 숨김(데이터는 이미 받아둠) */}
       {ready ? (
         error ? (
           <div className="p-3 border rounded">

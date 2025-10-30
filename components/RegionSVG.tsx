@@ -1,25 +1,23 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
-  src: string;                 // /regions/jpn_regions.svg
-  imgBase?: string;            // /images/pref
-  countryPrefix?: string;      // "jpn" | "kor"
-  defaultFill?: string;        // ivory
+  src: string;                 // e.g. /regions/jpn_regions.svg
+  imgBase?: string;            // e.g. /images/pref
+  countryPrefix?: string;      // e.g. "jpn" | "kor"
+  defaultFill?: string;        // fallback fill when no image exists
   onRegionClick?: (info:{code:string;name:string}) => void;
-  useIndexJson?: boolean;      // 디버깅 동안 false 권장
+  useIndexJson?: boolean;      // true면 `${imgBase}/index.json` 배열 키만 이미지 채움
+  preserveAspectRatio?: "none" | "xMinYMin meet" | "xMidYMid meet" | "xMaxYMax meet" | "xMinYMin slice" | "xMidYMid slice" | "xMaxYMax slice";
 };
 
 function slugify(x: string) {
   return x
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[’'`]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/--+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/[^A-Za-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
 }
 
 export default function RegionSVG({
@@ -28,125 +26,117 @@ export default function RegionSVG({
   countryPrefix = "",
   defaultFill = "#f4f1e6",
   onRegionClick,
-  useIndexJson = false, // ← 디버깅 동안 false 로!
+  useIndexJson = true,
+  preserveAspectRatio = "xMidYMid slice",
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const host = wrapRef.current;
-    if (!host) return;
+    let cancelled = false;
+    async function run() {
+      if (!wrapRef.current) return;
 
-    const exists = async (url: string) => {
-      // HEAD → 실패 시 GET 폴백 (dev 환경 호환)
-      try { const h = await fetch(url, { method: "HEAD", cache: "no-store" }); if (h.ok) return true; } catch {}
-      try { const g = await fetch(url, { method: "GET", cache: "no-store" }); return g.ok; } catch {}
-      return false;
-    };
+      // 1) SVG 로드
+      const text = await fetch(src, { cache: "force-cache" }).then(r => r.text());
+      if (cancelled) return;
 
-    const run = async () => {
-      // (옵션) index.json 사용 — 디버깅 끝나면 true로 돌려도 됨
-      let hasSet: Set<string> | null = null;
+      // 2) 파싱
+      const dom = new DOMParser().parseFromString(text, "image/svg+xml");
+      const svg = dom.documentElement as unknown as SVGSVGElement;
+
+      // viewBox
+      const vb = svg.getAttribute("viewBox")?.split(/\s+/).map(Number)
+        || [0,0, Number(svg.getAttribute("width")||"1000"), Number(svg.getAttribute("height")||"1000")];
+      const [minX, minY, vbW, vbH] = vb as [number, number, number, number];
+
+      // 3) index.json (있으면 그 키만 이미지 채움)
+      let available: Set<string> | null = null;
       if (useIndexJson) {
         try {
-          const r = await fetch(`${imgBase}/index.json`, { cache: "no-store" });
-          if (r.ok) hasSet = new Set<string>(await r.json());
+          const arr = await fetch(`${imgBase}/index.json`, { cache: "no-store" }).then(r => r.json());
+          if (Array.isArray(arr)) available = new Set<string>(arr.map((s:any)=>String(s).toLowerCase()));
         } catch {}
       }
 
-      const txt = await fetch(src, { cache: "no-store" }).then(r => r.text());
-      host.innerHTML = txt;
-      const svg = host.querySelector("svg");
-      if (!svg) return;
-
-      if (!svg.getAttribute("xmlns:xlink")) {
-        svg.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+      // 4) <defs> 보장
+      let defs = svg.querySelector("defs");
+      if (!defs) {
+        defs = dom.createElementNS("http://www.w3.org/2000/svg", "defs");
+        svg.insertBefore(defs, svg.firstChild);
       }
 
-      const vb = svg.viewBox?.baseVal;
-      const vw = Math.max(1, vb?.width  || parseFloat(svg.getAttribute("width")  || "1000") || 1000);
-      const vh = Math.max(1, vb?.height || parseFloat(svg.getAttribute("height") || "800")  || 800);
+      // 5) 지역 찾기: <g data-name>, <path data-name>, 그리고 예비로 .region
+      const regionRoots: Element[] = Array.from(svg.querySelectorAll('[data-name], path.region'));
 
-      const defs =
-        svg.querySelector("defs") ||
-        svg.insertBefore(document.createElementNS(svg.namespaceURI, "defs"), svg.firstChild);
+      regionRoots.forEach((rootEl) => {
+        const dataName = (rootEl.getAttribute("data-name") || rootEl.getAttribute("title") || "").trim();
 
-      const style = document.createElement("style");
-      style.textContent = `.region:hover{filter:brightness(.92)}`;
-      svg.prepend(style);
+        // 이 루트 아래의 모든 path (복수조각 대응)
+        const paths = rootEl.matches("path")
+          ? [rootEl as SVGPathElement]
+          : Array.from(rootEl.querySelectorAll("path"));
 
-      for (const node of Array.from(svg.querySelectorAll<SVGElement>(".region"))) {
-        const name = node.getAttribute("data-name") || "";
-        if (!name) continue;
-
-        const code = slugify(node.getAttribute("data-code") || name);
-        node.setAttribute("data-code", code);
-
-        const imgUrl = `${imgBase}/${code}.jpg`;
-        const patId  = `img-${countryPrefix}-${code}`;
-
-        // 디버깅 로그
-        // eslint-disable-next-line no-console
-        console.log("[Region]", { code, imgUrl, patId, countryPrefix });
-
-        // 기존 잘못된 fill 제거
-        node.removeAttribute("fill");
-
-        let useImg = false;
-        if (hasSet) {
-          useImg = hasSet.has(code);
-        } else {
-          useImg = await exists(imgUrl);
+        if (!dataName) {
+          // 이름이 없으면 기본색
+          paths.forEach(p => p.setAttribute("fill", defaultFill));
+          return;
         }
 
-        if (useImg) {
-          // 패턴 없으면 생성
-          if (!svg.querySelector(`#${patId}`)) {
-            const pat = document.createElementNS(svg.namespaceURI, "pattern");
-            pat.setAttribute("id", patId);
-            pat.setAttribute("patternUnits", "userSpaceOnUse");
-            pat.setAttribute("patternContentUnits", "userSpaceOnUse");
-            pat.setAttribute("x", "0");
-            pat.setAttribute("y", "0");
-            pat.setAttribute("width", String(vw));
-            pat.setAttribute("height", String(vh));
-
-            const im = document.createElementNS(svg.namespaceURI, "image");
-            // 최신+구형 둘 다
-            im.setAttributeNS(null, "href", imgUrl);
-            im.setAttributeNS("http://www.w3.org/1999/xlink", "href", imgUrl);
-            im.setAttribute("x", "0");
-            im.setAttribute("y", "0");
-            im.setAttribute("width", String(vw));
-            im.setAttribute("height", String(vh));
-            im.setAttribute("preserveAspectRatio", "xMidYMid slice");
-
-            pat.appendChild(im);
-            defs.appendChild(pat);
-          }
-
-          requestAnimationFrame(() => {
-            node.setAttribute("fill", `url(#${patId})`);
-            // 디버깅 표시: 이미지가 적용된 구역은 테두리를 살짝 진하게
-            node.setAttribute("stroke", "rgba(0,0,0,.4)");
-            node.setAttribute("stroke-width", "0.6");
-          });
-        } else {
-          node.setAttribute("fill", defaultFill);
+        const slug = slugify(dataName);       // "Hokkaidō" → "hokkaido" 처럼 정규화
+        if (available && !available.has(slug)) {
+          paths.forEach(p => p.setAttribute("fill", defaultFill));
+          return;
         }
 
-        (node.style as any).cursor = "pointer";
-        node.setAttribute("tabindex", "0");
-        node.setAttribute("role", "button");
-        const go = () => onRegionClick?.({ code, name });
-        node.addEventListener("click", go);
-        node.addEventListener("keydown", (e: any) => {
+        const imgUrl = `${imgBase}/${slug}.jpg`;
+        const patId = `pat_${slug}`;
+
+        // 패턴 1회만 생성
+        if (!svg.querySelector(`#${patId}`)) {
+          const pattern = dom.createElementNS("http://www.w3.org/2000/svg", "pattern");
+          pattern.setAttribute("id", patId);
+          pattern.setAttribute("patternUnits", "objectBoundingBox");
+          pattern.setAttribute("width", "1");
+          pattern.setAttribute("height", "1");
+
+          const image = dom.createElementNS("http://www.w3.org/2000/svg", "image");
+          image.setAttribute("href", imgUrl); // 최신 속성 (xlink:href 대신)
+          image.setAttribute("width", String(vbW));
+          image.setAttribute("height", String(vbH));
+          image.setAttribute("preserveAspectRatio", preserveAspectRatio);
+          pattern.appendChild(image);
+          defs!.appendChild(pattern);
+        }
+
+        // 해당 지역의 모든 path에 패턴 적용 + 테두리 보정
+        paths.forEach((p) => {
+          p.setAttribute("fill", `url(#${patId})`);
+          if (!p.getAttribute("stroke")) p.setAttribute("stroke", "#2f2f2f");
+          if (!p.getAttribute("stroke-width")) p.setAttribute("stroke-width", "1.2");
+        });
+
+        // 상호작용(루트에 부여)
+        const code = countryPrefix ? `${countryPrefix}-${slug}` : slug;
+        (rootEl as any).style.cursor = "pointer";
+        (rootEl as any).setAttribute("tabindex", "0");
+        (rootEl as any).setAttribute("role", "button");
+        const go = () => onRegionClick?.({ code, name: dataName });
+        rootEl.addEventListener("click", go);
+        rootEl.addEventListener("keydown", (e: any) => {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); }
         });
-      }
-    };
+        console.log({ dataName, slug, imgUrl, has: available?.has?.(slug) });
+      });
 
+      // 6) mount
+      wrapRef.current.innerHTML = "";
+      wrapRef.current.appendChild(svg);
+      if (!cancelled) setReady(true);
+    }
     run();
-  }, [src, imgBase, countryPrefix, defaultFill, onRegionClick, useIndexJson]);
+    return () => { cancelled = true; };
+  }, [src, imgBase, countryPrefix, defaultFill, onRegionClick, useIndexJson, preserveAspectRatio]);
 
   return <div ref={wrapRef} className="relative w-full" />;
 }

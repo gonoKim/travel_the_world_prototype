@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <style>
+    .outline { fill:#f4f1e6; stroke:#2f2f2f; stroke-width:1.5; vector-effect:non-scaling-stroke; }
+    text { font-family: system-ui, sans-serif; font-size: 12px; fill: #222; }
+  </style>
+
+  <!-- Region A: group with two sub paths (to test multi-part fill) -->
+  <g data-name="Alpha" class="outline">
+    <path d="M60,80 C100,50 180,50 220,80 C260,110 260,170 220,200 C180,230 100,230 60,200 C20,170 20,110 60,80 Z"/>
+    <path d="M230,210 C240,200 255,200 265,210 C275,220 275,235 265,245 C255,255 240,255 230,245 C220,235 220,220 230,210 Z"/>
+  </g>
+
+  <!-- Region B: single path with data-name -->
+  <path data-name="Beta Island" class="outline"
+        d="M360,120 C400,90 470,95 510,130 C550,165 540,210 495,235 C450,260 395,255 365,225 C335,195 330,150 360,120 Z"/>
+
+  <!-- Labels -->
+  <text x="120" y="75">Alpha</text>
+  <text x="430" y="115">Beta Island</text>
+</svg>

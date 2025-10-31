@@ -28,7 +28,7 @@ export default function Viewer({ code }: { code: string }) {
         imgBase={conf.imgBase}
         countryPrefix={conf.prefix}
         defaultFill="#f4f1e6"
-        useIndexJson={false} // ★ 지금은 false (404 줄이려면 index.json 세팅 후 true)
+        useIndexJson={true} // ★ 지금은 false (404 줄이려면 index.json 세팅 후 true)
         onRegionClick={({ code: rcode, name }) => {
           console.log("clicked:", rcode, name);
         }}

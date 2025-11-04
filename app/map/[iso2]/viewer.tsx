@@ -25,13 +25,13 @@ export default function Viewer({ code }: { code: string }) {
 
       <RegionSVG
         src={conf.file}
-        imgBase={conf.imgBase}
-        countryPrefix={conf.prefix}
-        defaultFill="#f4f1e6"
-        useIndexJson={true} // ★ 지금은 false (404 줄이려면 index.json 세팅 후 true)
-        onRegionClick={({ code: rcode, name }) => {
-          console.log("clicked:", rcode, name);
+        mode="clip"
+        baseFill="#f4f1e6"           // 아이보리 바탕
+        images={{
+          "JP-01": "/images/pref/hokkaido.jpg",
+          "JP-13": "/images/pref/tokyo.jpg",
         }}
+        preserveAspectRatio="xMidYMid slice"
       />
     </div>
   );

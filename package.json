@@ -5,7 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "export": "next export",
-    "build:static": "npm run build && npm run export",
+    "build:static": "npm run build",
     "preview": "npx serve out"
   },
   "dependencies": {
